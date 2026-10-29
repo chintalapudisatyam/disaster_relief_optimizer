@@ -1,0 +1,23 @@
+{
+ "name": "2026 Flood Relief Demo (Demo Data - fictional)",
+ "resources": ["Food", "Water", "Medicine"],
+ "warehouses": [
+  {"name": "Warehouse A - Patna Relief Center", "supply": [1000, 800, 200]},
+  {"name": "Warehouse B - Gaya Depot", "supply": [900, 900, 250]},
+  {"name": "Warehouse C - Muzaffarpur Hub", "supply": [1000, 800, 200]}
+ ],
+ "areas": [
+  {"name": "Area 1 - Flood Camp A", "population": 500, "priority": "High", "demand": [400, 500, 80]},
+  {"name": "Area 2 - Flood Camp B", "population": 800, "priority": "Medium", "demand": [600, 700, 90]},
+  {"name": "Area 3 - Village C", "population": 650, "priority": "Low", "demand": [500, 450, 60]},
+  {"name": "Area 4 - Town D", "population": 1200, "priority": "High", "demand": [900, 950, 150]}
+ ],
+ "cost": [[10, 15, 8, 20], [12, 7, 14, 10], [6, 18, 9, 12]],
+ "vehicles": [
+  {"name": "Truck 1", "capacity": 500, "trips": 2},
+  {"name": "Truck 2", "capacity": 1000, "trips": 1},
+  {"name": "Truck 3", "capacity": 750, "trips": 2}
+ ],
+ "priority_weights": {"High": 5, "Medium": 3, "Low": 1},
+ "unmet_penalty": null
+}

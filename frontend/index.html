@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disaster Relief Distribution Optimizer</title>
+<style>
+:root{--p:#2563EB;--ok:#16A34A;--warn:#F59E0B;--bad:#DC2626;--bg:#F8FAFC;--tx:#0F172A;--mu:#64748B;--bd:#E2E8F0}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+main{max-width:1100px;margin:auto;padding:24px}h1{margin:0;font-size:24px}.sub{color:var(--mu);margin:4px 0 20px}
+.card{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:18px;margin-bottom:16px}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.steps button{border:1px solid var(--bd);background:#fff;border-radius:20px;padding:6px 14px;cursor:pointer;color:var(--mu)}
+.steps button.on{background:var(--p);color:#fff;border-color:var(--p)}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+th{color:var(--mu);font-size:12px;text-transform:uppercase}
+input,select{border:1px solid var(--bd);border-radius:6px;padding:6px;font:inherit;width:100%;min-width:70px}
+input.bad{border-color:var(--bad);background:#FEF2F2}
+button.b{background:var(--p);color:#fff;border:0;border-radius:8px;padding:9px 16px;cursor:pointer;font:inherit}
+button.g{background:#fff;color:var(--tx);border:1px solid var(--bd)}button.d{color:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.kpi{border:1px solid var(--bd);border-radius:10px;padding:12px;background:#fff}
+.kpi b{font-size:22px;display:block}.kpi span{color:var(--mu);font-size:13px}
+.err{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;padding:10px;border-radius:8px;margin-bottom:12px}
+.warn{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;padding:10px;border-radius:8px;margin-bottom:12px}
+.bar{background:#E2E8F0;border-radius:6px;height:10px;width:120px;display:inline-block;vertical-align:middle}.bar i{display:block;height:100%;border-radius:6px;background:var(--p)}
+.tag{padding:2px 8px;border-radius:10px;font-size:12px;border:1px solid}.High{color:var(--bad)}.Medium{color:#B45309}.Low{color:var(--ok)}
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.help{color:var(--mu);font-size:13px}
+</style></head><body><main>
+<h1>Disaster Relief Distribution Optimizer</h1>
+<p class="sub">Optimization-based planning for efficient and prioritized disaster relief distribution.</p>
+<div class="steps" id="steps"></div><div id="view"></div>
+<p class="help">The model finds the best solution according to the defined objective function and constraints; it does not claim to be a universally best disaster-management solution.</p>
+</main>
+<script>
+const STEPS=["Scenario","Warehouses","Affected Areas","Resources","Transport Costs","Vehicles","Review","Results"];
+let S=null,step=0,result=null,errors=[];
+const $=id=>document.getElementById(id), fmt=n=>Math.round(n).toLocaleString('en-IN');
+const num=v=>v===''||isNaN(+v)?NaN:+v;
+
+async function init(){S=await (await fetch('/api/demo')).json();render()}
+function go(n){step=n;errors=[];render()}
+function next(){errors=check(step);if(errors.length)return render();go(step+1)}
+function check(s){const e=[];
+ if(s==0&&!S.name.trim())e.push("Scenario name is required.");
+ if(s==1){if(!S.warehouses.length)e.push("Add at least one warehouse.");S.warehouses.forEach(w=>w.supply.forEach(v=>{if(!(v>=0))e.push(w.name+": supply must be a number >= 0.")}))}
+ if(s==2){if(!S.areas.length)e.push("Add at least one affected area.");S.areas.forEach(a=>a.demand.forEach(v=>{if(!(v>=0))e.push(a.name+": demand must be a number >= 0.")}))}
+ if(s==4)S.cost.forEach(r=>r.forEach(v=>{if(!(v>=0))e.push("Costs must be numbers >= 0.")}));
+ if(s==5){if(!S.vehicles.length)e.push("Add at least one vehicle.");S.vehicles.forEach(v=>{if(!(v.capacity>0)||!(v.trips>=0))e.push(v.name+": capacity must be > 0 and trips >= 0.")})}
+ return[...new Set(e)]}
+
+function render(){
+ $('steps').innerHTML=STEPS.map((t,i)=>`<button class="${i==step?'on':''}" onclick="go(${i})">${i+1}. ${t}</button>`).join('');
+ const nav=`<div class="row">${step>0?'<button class="b g" onclick="go(step-1)">← Back</button>':''}${step<6?'<button class="b" onclick="next()">Next →</button>':''}</div>`;
+ $('view').innerHTML=(errors.length?`<div class="err">${errors.map(e=>'• '+e).join('<br>')}</div>`:'')+`<div class="card">${[vScenario,vWare,vAreas,vRes,vCost,vVeh,vReview,vResult][step]()}</div>`+(step<7?nav:'')}
+
+const inp=(path,val,type='number')=>`<input type="${type}" value="${val}" ${type=='number'?'min="0"':''} oninput="setv('${path}',this.value,'${type}',this)">`;
+function setv(path,v,type,el){const keys=path.split('.');let o=S;for(let i=0;i<keys.length-1;i++)o=o[keys[i]];
+ const k=keys.at(-1);o[k]=type=='number'?num(v):v;el.classList.toggle('bad',type=='number'&&!(o[k]>=0))}
+
+function vScenario(){return`<h3>Scenario</h3><span class="help">Demo Data — fictional values, not real disaster data.</span>
+ <p>Scenario name${inp('name',S.name,'text')}</p><p class="help">${S.warehouses.length} warehouses · ${S.areas.length} areas · ${S.vehicles.length} vehicles</p>`}
+
+function vWare(){const R=S.resources;
+ const tot=R.map((_,k)=>S.warehouses.reduce((a,w)=>a+(+w.supply[k]||0),0));
+ return`<h3>Relief Warehouses</h3><div class="scroll"><table><tr><th>Name</th>${R.map(r=>`<th>${r}</th>`).join('')}<th></th></tr>
+ ${S.warehouses.map((w,i)=>`<tr><td>${inp(`warehouses.${i}.name`,w.name,'text')}</td>${R.map((_,k)=>`<td>${inp(`warehouses.${i}.supply.${k}`,w.supply[k])}</td>`).join('')}
+ <td><button class="b g" onclick="dup('warehouses',${i})">Duplicate</button> <button class="b g d" onclick="del('warehouses',${i})">Delete</button></td></tr>`).join('')}</table></div>
+ <div class="row"><button class="b g" onclick="addW()">+ Add Warehouse</button></div><p><b>Total available:</b> ${R.map((r,k)=>r+': '+fmt(tot[k])).join(' · ')}</p>`}
+
+function vAreas(){const R=S.resources;
+ return`<h3>Affected Areas</h3><div class="scroll"><table><tr><th>Name</th><th>Population</th><th>Priority</th>${R.map(r=>`<th>${r} demand</th>`).join('')}<th></th></tr>
+ ${S.areas.map((a,i)=>`<tr><td>${inp(`areas.${i}.name`,a.name,'text')}</td><td>${inp(`areas.${i}.population`,a.population)}</td>
+ <td><select onchange="S.areas[${i}].priority=this.value">${['High','Medium','Low'].map(p=>`<option ${p==a.priority?'selected':''}>${p}</option>`).join('')}</select></td>
+ ${R.map((_,k)=>`<td>${inp(`areas.${i}.demand.${k}`,a.demand[k])}</td>`).join('')}
+ <td><button class="b g" onclick="dup('areas',${i})">Duplicate</button> <button class="b g d" onclick="del('areas',${i})">Delete</button></td></tr>`).join('')}</table></div>
+ <div class="row"><button class="b g" onclick="addA()">+ Add Area</button></div>
+ <p class="help">Priority weights used by the model: High = 5, Medium = 3, Low = 1.</p>`}
+
+function vRes(){return`<h3>Resources: supply vs demand</h3><table><tr><th>Resource</th><th>Total supply</th><th>Total demand</th><th>Surplus / shortage</th></tr>
+ ${S.resources.map((r,k)=>{const s=S.warehouses.reduce((a,w)=>a+(+w.supply[k]||0),0),d=S.areas.reduce((a,x)=>a+(+x.demand[k]||0),0);
+ return`<tr><td>${r}</td><td>${fmt(s)}</td><td>${fmt(d)}</td><td>${s>=d?'Surplus '+fmt(s-d):'<b style="color:var(--bad)">Shortage '+fmt(d-s)+'</b>'}</td></tr>`}).join('')}</table>
+ <p class="help">Shortages are allowed — the model reports them as unmet demand.</p>`}
+
+function vCost(){return`<h3>Transportation Cost (per unit)</h3><p class="help">Cost of sending one unit of relief from a warehouse to an affected area. This is not a route-optimization problem.</p>
+ <div class="scroll"><table><tr><th></th>${S.areas.map(a=>`<th>${a.name}</th>`).join('')}</tr>
+ ${S.warehouses.map((w,i)=>`<tr><th>${w.name}</th>${S.areas.map((_,j)=>`<td>${inp(`cost.${i}.${j}`,S.cost[i][j])}</td>`).join('')}</tr>`).join('')}</table></div>`}
+
+function vVeh(){const cap=S.vehicles.reduce((a,v)=>a+(v.capacity*v.trips||0),0);
+ return`<h3>Vehicles</h3><div class="scroll"><table><tr><th>Name</th><th>Capacity</th><th>Trips</th><th></th></tr>
+ ${S.vehicles.map((v,i)=>`<tr><td>${inp(`vehicles.${i}.name`,v.name,'text')}</td><td>${inp(`vehicles.${i}.capacity`,v.capacity)}</td><td>${inp(`vehicles.${i}.trips`,v.trips)}</td>
+ <td><button class="b g d" onclick="del('vehicles',${i})">Delete</button></td></tr>`).join('')}</table></div>
+ <div class="row"><button class="b g" onclick="S.vehicles.push({name:'Truck '+(S.vehicles.length+1),capacity:500,trips:1});render()">+ Add Vehicle</button></div>
+ <p><b>Total capacity:</b> ${fmt(cap)} (sum of capacity × trips)</p>`}
+
+function vReview(){const hi=p=>S.areas.filter(a=>a.priority==p).length,cap=S.vehicles.reduce((a,v)=>a+v.capacity*v.trips,0);
+ return`<h3>Review</h3><p>${S.warehouses.length} warehouses · ${S.areas.length} areas · ${S.vehicles.length} vehicles · capacity ${fmt(cap)}</p>
+ <p>Priority: High ${hi('High')}, Medium ${hi('Medium')}, Low ${hi('Low')}</p>${vRes()}
+ <div class="row"><button class="b g" onclick="go(1)">Edit Inputs</button><button class="b" onclick="run()">Run Optimization</button></div>`}
+
+async function run(){const e=[1,2,4,5].flatMap(check);if(e.length){errors=e;return render()}
+ step=7;result={loading:true};render();
+ const r=await fetch('/api/optimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
+ result=await r.json();if(!r.ok)errors=result.errors||[];render()}
+
+function vResult(){if(!result)return'<p>Run the optimization from the Review step.</p>';
+ if(result.loading)return'<p>Solving optimization problem…</p>';
+ if(result.status!='Optimal')return`<h3>Result: ${result.status}</h3><p>${result.message||''}</p><button class="b g" onclick="go(6)">Back to review</button>`;
+ const r=result,R=r.resources,pct=v=>v.toFixed(1)+'%';
+ const rows=r.allocations.filter(a=>a.total>0.0001);
+ return`<h3>Optimization Results — Optimal Solution Found</h3>${r.warnings.map(w=>`<div class="warn">${w}</div>`).join('')}
+ <div class="kpis">${[['₹'+fmt(r.total_cost),'Total transportation cost'],[pct(r.demand_satisfaction),'Demand served'],[pct(r.high_priority_satisfaction),'High-priority served'],[fmt(r.total_unmet),'Total unmet demand'],[fmt(r.total_distributed),'Total relief distributed'],[r.vehicles_used,'Vehicle trips used (cap '+fmt(r.vehicle_capacity)+')']].map(k=>`<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join('')}</div>
+ <h3>Distribution plan (non-zero allocations)</h3><div class="scroll"><table><tr><th>Warehouse</th><th>Area</th>${R.map(x=>`<th>${x}</th>`).join('')}<th>Total</th><th>Cost</th></tr>
+ ${rows.map(a=>`<tr><td>${a.warehouse}</td><td>${a.area}</td>${a.qty.map(q=>`<td>${fmt(q)}</td>`).join('')}<td>${fmt(a.total)}</td><td>₹${fmt(a.cost)}</td></tr>`).join('')}</table></div>
+ <h3>Area-wise results</h3><div class="scroll"><table><tr><th>Area</th><th>Priority</th><th>Population</th><th>Demand</th><th>Received</th><th>Unmet</th><th>Satisfaction</th></tr>
+ ${r.areas.map(a=>`<tr><td>${a.area}</td><td><span class="tag ${a.priority}">${a.priority}</span></td><td>${fmt(a.population)}</td><td>${fmt(a.demand)}</td><td>${fmt(a.received)}</td><td>${fmt(a.unmet)}</td>
+ <td><span class="bar"><i style="width:${a.satisfaction}%"></i></span> ${pct(a.satisfaction)}</td></tr>`).join('')}</table></div>
+ <div class="row"><button class="b g" onclick="go(1)">Edit inputs</button><button class="b" onclick="run()">Re-run</button></div>`}
+
+function resize(arr,len,fill){while(arr.length<len)arr.push(fill());arr.length=len}
+const nR=()=>S.resources.length;
+function addW(){S.warehouses.push({name:'Warehouse '+(S.warehouses.length+1),supply:S.resources.map(()=>0)});S.cost.push(S.areas.map(()=>0));render()}
+function addA(){S.areas.push({name:'Area '+(S.areas.length+1),population:0,priority:'Medium',demand:S.resources.map(()=>0)});S.cost.forEach(r=>r.push(0));render()}
+function dup(t,i){const c=JSON.parse(JSON.stringify(S[t][i]));c.name+=' (copy)';S[t].splice(i+1,0,c);
+ if(t=='warehouses')S.cost.splice(i+1,0,[...S.cost[i]]);else S.cost.forEach(r=>r.splice(i+1,0,r[i]));render()}
+function del(t,i){if(!confirm('Delete this item?'))return;S[t].splice(i,1);
+ if(t=='warehouses')S.cost.splice(i,1);if(t=='areas')S.cost.forEach(r=>r.splice(i,1));render()}
+init();
+</script></body></html>
