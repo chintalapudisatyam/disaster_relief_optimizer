@@ -10,7 +10,9 @@ python -m venv .venv
 pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload
 ```
-Open http://127.0.0.1:8000
+Open https://disaster-relief-optimizer-m8hg.onrender.com
+
+
 
 ## Model (see optimization/model.py — fully commented)
 - x[i,j,k] >= 0: quantity of resource k sent from warehouse i to area j
