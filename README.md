@@ -10,7 +10,7 @@ python -m venv .venv
 pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload
 ```
-Open https://disaster-relief-optimizer-m8hg.onrender.com
+Open http://127.0.0.1:8000
 
 
 
