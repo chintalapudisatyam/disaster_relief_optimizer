@@ -11,7 +11,7 @@ pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload
 ```
 Open http://127.0.0.1:8000
-
+You can also open it directly by 
 
 
 ## Model (see optimization/model.py — fully commented)
